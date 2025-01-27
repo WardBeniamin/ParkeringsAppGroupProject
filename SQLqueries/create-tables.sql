@@ -1,6 +1,6 @@
 -- Create Users table
 CREATE TABLE Users (
-    UserId INT PRIMARY KEY,
+    UserId INT PRIMARY KEY Identity (1,1),
     FullName VARCHAR(100) NOT NULL,
     Email VARCHAR(100) NOT NULL UNIQUE,
     Adress VARCHAR(250),
@@ -10,7 +10,7 @@ CREATE TABLE Users (
 
 -- Create the PaymentMethods table
 CREATE TABLE PaymentMethods (
-    PaymentId INT PRIMARY KEY,
+    PaymentId INT PRIMARY KEY Identity (1,1),
     PaymentType VARCHAR(50) NOT NULL
 );
 
@@ -25,7 +25,7 @@ CREATE TABLE UserPaymentMethods (
 
 -- Create the Cars table
 CREATE TABLE Cars (
-    CarId INT PRIMARY KEY,
+    CarId INT PRIMARY KEY Identity (1,1),
     PlateNumber VARCHAR(15) NOT NULL UNIQUE,
     Model VARCHAR(50),
     UserId INT NOT NULL,
@@ -34,14 +34,14 @@ CREATE TABLE Cars (
 
 -- Create the Zones table
 CREATE TABLE Zones (
-    ZoneId INT PRIMARY KEY,
+    ZoneId INT PRIMARY KEY Identity (1000,1),
     Fee DECIMAL(10, 2) NOT NULL,
     Adress VARCHAR(250)
 );
 
 -- Create the Receipts table
 CREATE TABLE Receipts (
-    TransactionId INT PRIMARY KEY,
+    TransactionId INT PRIMARY KEY Identity (1,1),
     UserId INT NOT NULL,
     ZoneId INT NOT NULL,
     StartTime DATETIME NOT NULL,
