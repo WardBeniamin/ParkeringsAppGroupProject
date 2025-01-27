@@ -1,3 +1,5 @@
+use ParkingAppDB
+
 -- Create Users table
 CREATE TABLE Users (
     UserId INT PRIMARY KEY Identity (1,1),
