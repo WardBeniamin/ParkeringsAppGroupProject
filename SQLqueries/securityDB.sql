@@ -25,3 +25,6 @@ FROM dbo.Users;
 
 -- Close the symmetric key
 CLOSE SYMMETRIC KEY MyKey;
+
+
+Scaffold-DbContext "Server=LAPTOP-CVJEVF6N\SQLEXPRESS;Database=ParkingAppDB;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Models
