@@ -17,7 +17,7 @@ public partial class User
 
     public string? Password { get; set; }
 
-    public string? EncryptedPassword { get; set; }
+    public virtual ICollection<ActiveParking> ActiveParkings { get; set; } = new List<ActiveParking>();
 
     public virtual ICollection<Car> Cars { get; set; } = new List<Car>();
 

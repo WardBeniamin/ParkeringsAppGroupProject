@@ -13,6 +13,8 @@ public partial class Car
 
     public int UserId { get; set; }
 
+    public virtual ICollection<ActiveParking> ActiveParkings { get; set; } = new List<ActiveParking>();
+
     public virtual ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
 
     public virtual User User { get; set; } = null!;
