@@ -9,39 +9,40 @@ namespace ParkeringsApp
     {
         static void Main(string[] args)
         {
-            bool appRunning = true;
+            
+                bool appRunning = true;
 
-            while (appRunning)
-            {
-                // Display the start menu
-                Console.Clear();
-                Console.WriteLine("=== Welcome to the Parking App ===");
-                Console.WriteLine("1. Log in");
-                Console.WriteLine("2. Create an account");
-                Console.WriteLine("3. Exit");
-                Console.Write("Choose an option (1-3): ");
-
-                string startChoice = Console.ReadLine()!;
-
-                switch (startChoice)
+                while (appRunning)
                 {
-                    case "1":
-                        // If logged in
-                        ShowMainMenu(); // Call the main parking app menu if login is successful
-                        break;
-                    case "2":
-                        Console.WriteLine("Function to create a new user goes here");
-                        break;
-                    case "3":
-                        Console.WriteLine("Exiting the app. Goodbye!");
-                        appRunning = false;
-                        break;
-                    default:
-                        Console.WriteLine("Invalid option. Please try again.");
-                        break;
-                }
+                    // Display the start menu
+                    Console.Clear();
+                    Console.WriteLine("=== Welcome to the Parking App ===");
+                    Console.WriteLine("1. Log in");
+                    Console.WriteLine("2. Create an account");
+                    Console.WriteLine("3. Exit");
+                    Console.Write("Choose an option (1-3): ");
 
-            }
+                    string startChoice = Console.ReadLine()!;
+
+                    switch (startChoice)
+                    {
+                        case "1":
+                            // If logged in
+                            ShowMainMenu(); // Call the main parking app menu if login is successful
+                            break;
+                        case "2":
+                            Console.WriteLine("Function to create a new user goes here");
+                            break;
+                        case "3":
+                            Console.WriteLine("Exiting the app. Goodbye!");
+                            appRunning = false;
+                            break;
+                        default:
+                            Console.WriteLine("Invalid option. Please try again.");
+                            break;
+                    }
+
+                }
         }
 
         static void ShowMainMenu()
@@ -121,7 +122,7 @@ namespace ParkeringsApp
             Console.WriteLine("What would you like to do?");
             Console.WriteLine("1. Edit Profile");
             Console.WriteLine("2. Delete User");
-            Console.Write("Enter your userEditProfileChoice (1 or 2): ");
+            Console.Write("Enter your choice (1 or 2): ");
 
             var userEditProfileChoice = Console.ReadLine();
 
@@ -131,17 +132,22 @@ namespace ParkeringsApp
             }
             else if (userEditProfileChoice == "2")
             {
-                DeleteUser(loggedInUserId);
+                bool userDeleted = DeleteUser(loggedInUserId);
+                if (userDeleted)
+                {
+                    // User is deleted, return to login function here to go back to start menu
+                }
             }
             else
             {
-                Console.WriteLine("Invalid userEditProfileChoice. Returning to the main menu.");
+                Console.WriteLine("Invalid choice. Returning to the main menu.");
             }
         }
 
         static void EditProfile(int loggedInUserId)
         {
             Console.WriteLine("Editing loginUser profile...");
+
             using (var ourDatabase = new ParkingAppDbContext())
             {
                 var loggedInUser = ourDatabase.Users.SingleOrDefault(user => user.UserId == loggedInUserId);
@@ -155,7 +161,7 @@ namespace ParkeringsApp
                 Console.WriteLine($"Editing profile for {loggedInUser.FullName}");
 
                 // Update FullName
-                Console.WriteLine("Enter full name (leave blank to keep current):");
+                Console.Write("Enter full name (leave blank to keep current): ");
                 var fullName = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(fullName))
                 {
@@ -163,20 +169,26 @@ namespace ParkeringsApp
                 }
 
                 // Update Email
-                Console.WriteLine("Enter new email (leave blank to keep current): ");
-                var email = Console.ReadLine();
-                if (!string.IsNullOrWhiteSpace(email))
+                while (true)
                 {
-                    if (ourDatabase.Users.Any(user => user.Email == email && user.UserId != loggedInUserId))
+                    Console.Write("Enter new email (leave blank to keep current): ");
+                    var email = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(email)) break;
+
+                    bool emailExists = ourDatabase.Users.Any(user => user.Email == email && user.UserId != loggedInUserId);
+                    if (emailExists)
                     {
-                        Console.WriteLine("Email already in use. Canceling profile update.");
-                        return;
+                        Console.WriteLine("Email already in use. Please enter a different email.");
                     }
-                    loggedInUser.Email = email;
+                    else
+                    {
+                        loggedInUser.Email = email;
+                        break;
+                    }
                 }
 
                 // Update Address
-                Console.WriteLine("Enter new address (leave blank to keep current): ");
+                Console.Write("Enter new address (leave blank to keep current): ");
                 var address = Console.ReadLine();
                 if (!string.IsNullOrWhiteSpace(address))
                 {
@@ -212,7 +224,7 @@ namespace ParkeringsApp
             }
         }
 
-        static void DeleteUser(int loggedInUserId)
+        static bool DeleteUser(int loggedInUserId)
         {
             using (var ourDatabase = new ParkingAppDbContext())
             {
@@ -221,43 +233,42 @@ namespace ParkeringsApp
                 if (loggedInUser == null)
                 {
                     Console.WriteLine("User not found. Please log in again.");
-                    return;
+                    return false;
                 }
 
                 Console.WriteLine($"Are you sure you want to delete your account, {loggedInUser.FullName}? This action cannot be undone.");
                 Console.WriteLine("Type 'YES' to confirm, or 'CANCEL' to go back to the main menu.");
-                Console.Write("Your choice: ");
-                var confirmation = Console.ReadLine();
 
-                if (confirmation?.ToUpper() == "YES")
+                while (true)
                 {
-                    ourDatabase.Users.Remove(loggedInUser);
+                    Console.Write("Your choice: ");
+                    var confirmation = Console.ReadLine()?.ToUpper();
 
-                    try
+                    if (confirmation == "YES")
                     {
-                        ourDatabase.SaveChanges();
-                        Console.WriteLine("Account deleted successfully. Goodbye!");
+                        ourDatabase.Users.Remove(loggedInUser);
 
-                        loggedInUserId = 0; // Reset loginUser session
-                        Console.WriteLine("You have been logged out.");
-
-                        // Redirect to login menu
-                        // Put the method for startmenu here
+                        try
+                        {
+                            ourDatabase.SaveChanges();
+                            Console.WriteLine("Account deleted successfully. Goodbye!");
+                            return true; // User was deleted
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error deleting account: {ex.Message}");
+                            return false;
+                        }
                     }
-                    catch (Exception ex)
+                    else if (confirmation == "CANCEL")
                     {
-                        Console.WriteLine($"Error deleting account: {ex.Message}");
+                        Console.WriteLine("Account deletion canceled. Returning to main menu...");
+                        return false;
                     }
-                }
-                else if (confirmation?.ToUpper() == "CANCEL")
-                {
-                    Console.WriteLine("Account deletion canceled. Returning to main menu...");
-                    ShowMainMenu(); 
-                }
-                else
-                {
-                    Console.WriteLine("Invalid choice. Returning to main menu...");
-                    ShowMainMenu(); 
+                    else
+                    {
+                        Console.WriteLine("Invalid input. Please type 'YES' to delete or 'CANCEL' to return.");
+                    }
                 }
             }
         }
