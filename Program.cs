@@ -94,6 +94,42 @@ namespace ParkeringsApp
         }
 
         // Placeholder methods for main menu options
+        static void ShowReceipts(int loggedInUserId)
+        {
+            using (var ourDatabase = new ParkingAppDbContext())
+            {
+                // Hämta alla kvitton för den inloggade användaren
+                var userReceipts = ourDatabase.Receipts
+                    .Include(r => r.Car) // Inkludera bilinformation
+                    .Include(r => r.Zone) // Inkludera zonsinformation
+                    .Include(r => r.Payment) // Inkludera betalningsmetod
+                    .Where(r => r.UserId == loggedInUserId)
+                    .ToList();
+
+                if (userReceipts.Any())
+                {
+                    Console.WriteLine("=== Your Receipts ===");
+                    foreach (var receipt in userReceipts)
+                    {
+                        Console.WriteLine($"Receipt ID: {receipt.TransactionId}");
+                        Console.WriteLine($"Car: {receipt.Car.PlateNumber} ({receipt.Car.Model})");
+                        Console.WriteLine($"Zone: {receipt.Zone.Adress} (Fee: {receipt.Zone.Fee} SEK/hour)");
+                        Console.WriteLine($"Payment Method: {receipt.Payment.PaymentType}");
+                        Console.WriteLine($"Start Time: {receipt.StartTime}");
+                        Console.WriteLine($"End Time: {receipt.EndTime}");
+                        Console.WriteLine($"Total Amount: {receipt.Amount} SEK");
+                        Console.WriteLine("-----------------------------");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No receipts found for your account.");
+                }
+            }
+
+            Console.WriteLine("Press any key to return to the main menu...");
+            Console.ReadKey();
+        }
         static void StartParking()
         {
             Console.WriteLine("Starting a parking session...");
@@ -106,17 +142,34 @@ namespace ParkeringsApp
             // Add logic for ongoing parking
         }
 
-        static void ShowReceipts()
-        {
-            Console.WriteLine("Displaying receipts...");
-            // Add logic for receipts
-        }
+            static void ListAllZones()
+            {
+                using (var ourDatabase = new ParkingAppDbContext())
+                {
+                    var zones = ourDatabase.Zones.ToList();
 
-        static void ListAllZones()
-        {
-            Console.WriteLine("Listing all parking zones...");
-            // Add logic for listing zones
-        }
+                    if (zones.Any())
+                    {
+                        Console.WriteLine("=== Available Parking Zones ===");
+                        foreach (var zone in zones)
+                        {
+                            Console.WriteLine($"Zone ID: {zone.ZoneId}");
+                            Console.WriteLine($"Address: {zone.Adress}");
+                            Console.WriteLine($"Fee: {zone.Fee} SEK/hour");
+                            Console.WriteLine("-----------------------------");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("No parking zones found.");
+                    }
+                }
+
+                Console.WriteLine("Press any key to return to the main menu...");
+                Console.ReadKey();
+            }
+
+        
         static void EditProfileOrDelete(int loggedInUserId)
         {
             Console.WriteLine("What would you like to do?");
