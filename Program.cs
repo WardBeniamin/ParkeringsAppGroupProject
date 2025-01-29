@@ -138,7 +138,6 @@ namespace ParkeringsApp
                 Console.WriteLine("Invalid userEditProfileChoice. Returning to the main menu.");
             }
         }
-
         static void EditProfile(int loggedInUserId)
         {
             Console.WriteLine("Editing loginUser profile...");
