@@ -63,6 +63,7 @@ namespace ParkeringsApp
                 Console.Write("Choose an option (1-6): ");
 
                 string userInputMenuChoice = Console.ReadLine()!;
+                int loggedInUserId = 1;
 
                 switch (userInputMenuChoice)
                 {
@@ -73,13 +74,12 @@ namespace ParkeringsApp
                         OngoingParking();
                         break;
                     case "3":
-                        ShowReceipts();
+                        ShowReceipts(loggedInUserId);
                         break;
                     case "4":
                         ListAllZones();
                         break;
                     case "5":
-                        int loggedInUserId = 1;
                         EditProfileOrDelete(loggedInUserId);
                         break;
                     case "6":
@@ -94,6 +94,42 @@ namespace ParkeringsApp
         }
 
         // Placeholder methods for main menu options
+        static void ShowReceipts(int loggedInUserId)
+        {
+            using (var ourDatabase = new ParkingAppDbContext())
+            {
+                // Hämta alla kvitton för den inloggade användaren
+                var userReceipts = ourDatabase.Receipts
+                    .Include(r => r.Car) // Inkludera bilinformation
+                    .Include(r => r.Zone) // Inkludera zonsinformation
+                    .Include(r => r.Payment) // Inkludera betalningsmetod
+                    .Where(r => r.UserId == loggedInUserId)
+                    .ToList();
+
+                if (userReceipts.Any())
+                {
+                    Console.WriteLine("=== Your Receipts ===");
+                    foreach (var receipt in userReceipts)
+                    {
+                        Console.WriteLine($"Receipt ID: {receipt.TransactionId}");
+                        Console.WriteLine($"Car: {receipt.Car.PlateNumber} ({receipt.Car.Model})");
+                        Console.WriteLine($"Zone: {receipt.Zone.Adress} (Fee: {receipt.Zone.Fee} SEK/hour)");
+                        Console.WriteLine($"Payment Method: {receipt.Payment.PaymentType}");
+                        Console.WriteLine($"Start Time: {receipt.StartTime}");
+                        Console.WriteLine($"End Time: {receipt.EndTime}");
+                        Console.WriteLine($"Total Amount: {receipt.Amount} SEK");
+                        Console.WriteLine("-----------------------------");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No receipts found for your account.");
+                }
+            }
+
+            Console.WriteLine("Press any key to return to the main menu...");
+            Console.ReadKey();
+        }
         static void StartParking()
         {
             Console.WriteLine("Starting a parking session...");
