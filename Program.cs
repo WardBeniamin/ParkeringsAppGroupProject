@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ParkeringsApp.Models;
 using System.Diagnostics.Metrics;
 using System.Linq.Expressions;
+using System.Text;
 
 namespace ParkeringsApp
 {
@@ -39,7 +40,7 @@ namespace ParkeringsApp
                         }
                         break;
                     case "2":
-                        //CreateAccount();
+                        CreateAccount();
                         break;
                     case "3":
                         Console.WriteLine("Exiting the app. Goodbye!");
@@ -78,44 +79,94 @@ namespace ParkeringsApp
             }
         }
 
-        static void CreateAccount(ParkingAppDbContext OurDatabase)
+        public static void CreateAccount()
         {
-            Console.Clear();
-            Console.WriteLine("=== Skapa konto ===");
+            string fullName = GetValidatedInput("Enter Full Name: ");
+            string email = GetValidatedEmail();
+            string address = GetValidatedInput("Enter Address (optional): ", false);
+            string phoneNumber = GetValidatedInput("Enter Phone Number (optional): ", false);
+            string password = GetValidatedPassword();
 
-            Console.Write("Ange ett unikt användar-ID (nummer): ");
-            if (!int.TryParse(Console.ReadLine(), out int userId))
+            if (IsEmailTaken(email))
             {
-                Console.WriteLine("Ogiltigt ID. Det måste vara ett nummer.");
-                Console.ReadKey();
+                Console.WriteLine("Email is already in use. Please try a different one.");
                 return;
             }
 
-            // Kontrollera om ID redan finns i databasen
-            var existingUser = OurDatabase.Users.SingleOrDefault(u => u.UserId == userId);
-            if (existingUser != null)
+            SaveUserToDatabase(fullName, email, address, phoneNumber, password);
+            Console.WriteLine("User registered successfully!");
+        }
+
+        private static string GetValidatedInput(string prompt, bool required = true)
+        {
+            while (true)
             {
-                Console.WriteLine("Användar-ID är redan upptaget. Välj ett annat.");
-                Console.ReadKey();
-                return;
+                Console.Write(prompt);
+                string input = Console.ReadLine()!.Trim();
+
+                if (!required && string.IsNullOrEmpty(input))
+                    return null;
+
+                if (!string.IsNullOrEmpty(input))
+                    return input;
+
+                Console.WriteLine("Input cannot be empty. Please try again.");
             }
+        }
 
-            Console.Write("Ange lösenord för ditt nya konto: ");
-            string password = Console.ReadLine()!;
-
-            // Skapa en ny användare
-            var newUser = new User
+        private static string GetValidatedEmail()
+        {
+            while (true)
             {
-                UserId = userId,
-                Password = password // OBS: Hasha lösenordet i framtiden!
+                Console.Write("Enter Email: ");
+                string email = Console.ReadLine()!.Trim();
+                       
+                if (!string.IsNullOrEmpty(email) && email.Contains("@") && email.Contains("."))
+                    return email;
+
+                Console.WriteLine("Invalid email format. Please try again.");
+            }
+        }
+
+        private static string GetValidatedPassword()
+        {
+            while (true)
+            {
+                Console.Write("Enter Password (at least 6 characters): ");
+                string password = Console.ReadLine()!.Trim();
+
+                if (!string.IsNullOrEmpty(password) && password.Length >= 6)
+                    return password;
+
+                Console.WriteLine("Password must be at least 6 characters long.");
+            }
+        }
+
+        private static bool IsEmailTaken(string email)
+        {
+            using (var ourDatabase = new ParkingAppDbContext())
+            {
+                return ourDatabase.Users.Any(u => u.Email == email);
+            }
+                
+        }
+
+        private static void SaveUserToDatabase(string fullName, string email, string adress, string phoneNumber, string password)
+        {
+            User newUser = new User
+            {
+                FullName = fullName,
+                Email = email,
+                Adress = adress,
+                PhoneNumber = phoneNumber,
+                Password = password
             };
-
-            // Spara den nya användaren i databasen
-            OurDatabase.Users.Add(newUser);
-            OurDatabase.SaveChanges();
-
-            Console.WriteLine("Konto skapades framgångsrikt!");
-            Console.ReadKey();
+            using (var ourDatabase = new ParkingAppDbContext())
+            {
+                ourDatabase.Users.Add(newUser);
+                ourDatabase.SaveChanges();
+            }
+            
         }
         static void ShowMainMenu(User loggedInUser)
         {
