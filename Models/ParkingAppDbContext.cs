@@ -100,9 +100,9 @@ public partial class ParkingAppDbContext : DbContext
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            entity.Property(e => e.EncryptedPassword)
-                .HasMaxLength(512)
-                .IsUnicode(false);
+            //entity.Property(e => e.EncryptedPassword)
+            //    .HasMaxLength(512)
+            //    .IsUnicode(false);
             entity.Property(e => e.FullName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -113,7 +113,7 @@ public partial class ParkingAppDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
 
-            entity.HasMany(d => d.Payments).WithMany(p => p.Users)
+            entity.HasMany(d => d.PaymentMethods).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(
                     "UserPaymentMethod",
                     r => r.HasOne<PaymentMethod>().WithMany()
