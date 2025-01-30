@@ -139,10 +139,17 @@ namespace ParkeringsApp
                 switch (userInputMenuChoice)
                 {
                     case "1":
-                        StartParking();
+                        using (var ourDatabase = new ParkingAppDbContext())
+                        {
+                            StartParkingSession(ourDatabase, loggedInUser);
+                        }
                         break;
                     case "2":
-                        OngoingParking();
+                        using (var ourDatabase = new ParkingAppDbContext())
+                        {
+                            ManageActiveParking(ourDatabase, loggedInUser.UserId);
+                        }
+
                         break;
                     case "3":
                         ShowReceipts(loggedInUser.UserId);
@@ -169,17 +176,299 @@ namespace ParkeringsApp
             }
         }
 
-        static void StartParking()
+        // Start -- StartParking -- 
+        public static void StartParkingSession(ParkingAppDbContext ourDatabase, User loggedInUser)
         {
-            Console.WriteLine("Starting a parking session...");
-            // Add logic for starting parking
+            // Step 1: Select a zone
+            int zoneId = SelectZone(ourDatabase);
+
+            // Step 2: Set start and end time
+            var (startTime, endTime) = SetTimes();
+
+            // Step 3: Choose a car
+            int carId = ChooseCar(ourDatabase, loggedInUser.UserId);
+
+            // Step 4: Confirm the session details
+            if (ConfirmSession(zoneId, startTime, endTime, carId))
+            {
+                // Step 5: Save the parking session
+                SaveActiveParkingSession(ourDatabase, loggedInUser.UserId, zoneId, startTime, endTime, carId);
+            }
+            else
+            {
+                Console.WriteLine("Parking session was not confirmed. Exiting...");
+            }
         }
 
-        static void OngoingParking()
+        public static int SelectZone(ParkingAppDbContext ourDatabase)
         {
-            Console.WriteLine("Showing ongoing parking sessions...");
-            // Add logic for ongoing parking
+            // Get all zones from the database
+            var zones = ourDatabase.Zones.ToList();
+
+            Console.WriteLine("Available zones:");
+
+            // Display the zones to the user, showing the ZoneId (not the index)
+            foreach (var zone in zones)
+            {
+                Console.WriteLine($"ZoneId: {zone.ZoneId} - Fee: {zone.Fee} - Address: {zone.Adress}");
+            }
+
+            // Ask the user to enter the actual ZoneId
+            Console.Write("Enter the ZoneId you want to select: ");
+            int zoneChoice;
+
+            // Validate the input to make sure it matches an existing ZoneId
+            while (!int.TryParse(Console.ReadLine(), out zoneChoice) || !zones.Any(z => z.ZoneId == zoneChoice))
+            {
+                Console.WriteLine("Invalid ZoneId. Please enter a valid ZoneId from the list.");
+            }
+
+            // Return the chosen zone ID
+            return zoneChoice;
         }
+
+
+        public static (DateTime startTime, DateTime? endTime) SetTimes()
+        {
+            DateTime startTime;
+
+            // Ask if the user wants to use the current time for the start time
+            Console.Write("Do you want to use the current time as the start time? (y/n): ");
+            string useCurrentTime = Console.ReadLine()?.ToLower()!;
+
+            if (useCurrentTime == "y")
+            {
+                startTime = DateTime.Now; // Use current date and time
+                Console.WriteLine($"Using current time: {startTime:yyyy-MM-dd HH:mm}");
+            }
+            else
+            {
+                // Ask for the start time if the user doesn't want the current time
+                Console.Write("Enter start time (yyyy-MM-dd HH:mm): ");
+                startTime = DateTime.Parse(Console.ReadLine()!);
+            }
+
+            // Ask for the end time
+            Console.Write("Enter end time (yyyy-MM-dd HH:mm): ");
+            DateTime? endTime = DateTime.TryParse(Console.ReadLine(), out DateTime parsedEndTime) ? parsedEndTime : (DateTime?)null;
+
+            return (startTime, endTime);
+        }
+
+
+        public static int ChooseCar(ParkingAppDbContext ourDatabase, int loggedinUserId)
+        {
+            // Get all cars registered by the user
+            var cars = ourDatabase.Cars.Where(c => c.UserId == loggedinUserId).ToList();
+
+            Console.WriteLine("Your registered cars:");
+
+            // Display the cars to the user
+            foreach (var car in cars)
+            {
+                Console.WriteLine($"Car ID: {car.CarId} - {car.Model}");
+            }
+
+            // Ask the user to choose a car by CarId
+            Console.Write("Select a car by entering its Car ID: ");
+            int carChoice = int.Parse(Console.ReadLine()!);
+
+            // Check if the entered CarId is valid
+            var selectedCar = cars.FirstOrDefault(c => c.CarId == carChoice);
+
+            if (selectedCar != null)
+            {
+                // Return the chosen car ID
+                return selectedCar.CarId;
+            }
+            else
+            {
+                Console.WriteLine("Invalid Car ID. Please try again.");
+                return ChooseCar(ourDatabase, loggedinUserId); // Recursively ask again if the CarId is invalid
+            }
+        }
+
+
+        public static bool ConfirmSession(int zoneId, DateTime startTime, DateTime? endTime, int carId)
+        {
+            // Display session details
+            Console.WriteLine("\nSession details:");
+            Console.WriteLine($"Zone ID: {zoneId}");
+            Console.WriteLine($"Start Time: {startTime}");
+            Console.WriteLine($"End Time: {(endTime.HasValue ? endTime.Value.ToString() : "Not specified")}");
+            Console.WriteLine($"Car ID: {carId}");
+
+            // Ask for confirmation
+            Console.Write("Do you want to confirm this session? (y/n): ");
+            string confirmation = Console.ReadLine()!.ToLower();
+
+            return confirmation == "y";
+        }
+
+        public static void SaveActiveParkingSession(ParkingAppDbContext ourDatabase, int loggedinUserId, int zoneId, DateTime startTime, DateTime? endTime, int carId)
+        {
+            // Create the ActiveParking object
+            ActiveParking newSession = new ActiveParking
+            {
+                UserId = loggedinUserId,
+                ZoneId = zoneId,
+                StartTime = startTime,
+                EndTime = endTime,
+                CarId = carId,
+                Status = "Active" // Default to Active
+            };
+
+            // Add the new session to the database
+            ourDatabase.ActiveParkings.Add(newSession);
+            ourDatabase.SaveChanges(); // Save changes to the DB
+
+            Console.WriteLine("Parking session started successfully!");
+        }
+
+        // End -- StartParking -- 
+
+        // Start -- ManageActiveParking -- 
+
+        public static void ManageActiveParking(ParkingAppDbContext OurDatabase, int loggedinUserId)
+        {
+            // Fetch the active parking sessions for the user
+            var activeParkings = GetActiveParkings(OurDatabase, loggedinUserId);
+
+            // Display the active parking sessions to the user
+            DisplayActiveParkings(activeParkings);
+
+            // If no active parking sessions are found, exit early
+            if (activeParkings.Count == 0)
+            {
+                return;
+            }
+
+            // Ask the user to select a parking session to manage
+            Console.Write("Select a parking session to manage (enter the number): ");
+            int sessionChoice = int.Parse(Console.ReadLine()!);
+
+            // Validate the session choice
+            if (sessionChoice < 1 || sessionChoice > activeParkings.Count)
+            {
+                Console.WriteLine("Invalid choice.");
+                return;
+            }
+
+            var selectedSession = activeParkings[sessionChoice - 1];
+
+            Console.WriteLine($"Managing parking session at Zone {selectedSession.ZoneId} with Car ID {selectedSession.CarId}");
+
+            // Get the user's action choice (either stop the session or change the end time)
+            int actionChoice = GetActionChoice();
+
+            switch (actionChoice)
+            {
+                case 1:
+                    StopParkingSession(selectedSession, OurDatabase);
+                    break;
+
+                case 2:
+                    ChangeEndTime(selectedSession, OurDatabase);
+                    break;
+
+                case 3:
+                    Console.WriteLine("Returning to the main menu...");
+                    return;
+
+                default:
+                    Console.WriteLine("Invalid choice. Please enter 1, 2, or 3.");
+                    break;
+            }
+
+        }
+
+        public static List<ActiveParking> GetActiveParkings(ParkingAppDbContext OurDatabase, int userId)
+        {
+            // Get all active parking sessions for the user
+            return OurDatabase.ActiveParkings
+                              .Where(ActiveParking => ActiveParking.UserId == userId && ActiveParking.Status == "Active")
+                              .ToList();
+        }
+
+        public static void DisplayActiveParkings(List<ActiveParking> activeParkings)
+        {
+            // If no active parking sessions are found, display a message and return
+            if (activeParkings.Count == 0)
+            {
+                Console.WriteLine("You have no active parking sessions.");
+                return;
+            }
+
+            Console.WriteLine("Your active parking sessions:");
+
+            // Display the active parking sessions to the user
+            for (int i = 0; i < activeParkings.Count; i++)
+            {
+                var activeParking = activeParkings[i];
+                Console.WriteLine($"{i + 1}. Zone ID: {activeParking.ZoneId} - Car ID: {activeParking.CarId} - Start Time: {activeParking.StartTime} - End Time: {activeParking.EndTime} - Status: {activeParking.Status}");
+            }
+        }
+
+        public static int GetActionChoice()
+        {
+            Console.WriteLine("What would you like to do?");
+            Console.WriteLine("1. Stop the parking session.");
+            Console.WriteLine("2. Change the end time.");
+            Console.WriteLine("3. Return back to main menu.");
+            Console.Write("Enter your choice (1, 2 or 3): ");
+            return int.Parse(Console.ReadLine()!);
+        }
+
+        public static void StopParkingSession(ActiveParking selectedSession, ParkingAppDbContext ourDatabase)
+        {
+            // Stop the parking session by updating its status to "Completed"
+            selectedSession.Status = "Completed";
+            selectedSession.EndTime = DateTime.Now; // Set the end time to the current time
+
+            var receipt = new Receipt
+            {
+                UserId = selectedSession.UserId,
+                CarId = selectedSession.CarId,
+                ZoneId = selectedSession.ZoneId,
+                StartTime = selectedSession.StartTime,
+                EndTime = selectedSession.EndTime.Value, // EndTime is guaranteed to have a value here
+                Amount = CalculateAmount(selectedSession, ourDatabase) // Calculate fee dynamically
+            };
+
+            ourDatabase.SaveChanges();
+            Console.WriteLine("Parking session stopped successfully.");
+            Console.WriteLine("\nPress any key to return to main menu");
+            Console.ReadKey();
+        }
+
+        private static decimal CalculateAmount(ActiveParking selectedSession, ParkingAppDbContext ourDatabase)
+        {
+            var zone = ourDatabase.Zones.FirstOrDefault(z => z.ZoneId == selectedSession.ZoneId);
+            if (zone == null)
+                throw new Exception("Zone not found.");
+
+            TimeSpan duration = selectedSession.EndTime.Value - selectedSession.StartTime;
+            decimal hours = (decimal)duration.TotalHours;
+
+            return Math.Ceiling(hours) * zone.Fee; // Round up and multiply by zone fee
+        }
+
+        public static void ChangeEndTime(ActiveParking selectedSession, ParkingAppDbContext ourDatabase)
+        {
+            // Ask for the new end time
+            Console.Write("Enter new end time (yyyy-MM-dd HH:mm): ");
+            DateTime newEndTime = DateTime.Parse(Console.ReadLine());
+
+            // Update the end time of the parking session
+            selectedSession.EndTime = newEndTime;
+            OurDatabase.SaveChanges();
+            Console.WriteLine("End time updated successfully.");
+            Console.WriteLine("\nPress any key to return to main menu");
+            Console.ReadKey();
+        }
+
+
+        // End -- ManageActiveParking -- 
 
         static void ShowReceipts(int loggedInUser)
         {
