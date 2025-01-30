@@ -11,5 +11,7 @@ public partial class Zone
 
     public string? Adress { get; set; }
 
+    public virtual ICollection<ActiveParking> ActiveParkings { get; set; } = new List<ActiveParking>();
+
     public virtual ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
 }

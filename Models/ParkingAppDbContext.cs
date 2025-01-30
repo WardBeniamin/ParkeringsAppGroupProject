@@ -15,6 +15,8 @@ public partial class ParkingAppDbContext : DbContext
     {
     }
 
+    public virtual DbSet<ActiveParking> ActiveParkings { get; set; }
+
     public virtual DbSet<Car> Cars { get; set; }
 
     public virtual DbSet<PaymentMethod> PaymentMethods { get; set; }
@@ -27,15 +29,40 @@ public partial class ParkingAppDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-            => optionsBuilder.UseSqlServer("Server=(local)\\SQLEXPRESS;Database=ParkingAppDB;Trusted_Connection=True;TrustServerCertificate=True;");
+        => optionsBuilder.UseSqlServer("Server=(local)\\SQLEXPRESS;Database=ParkingAppDB;Trusted_Connection=True;TrustServerCertificate=True;");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ActiveParking>(entity =>
+        {
+            entity.HasKey(e => e.ActiveParkingId).HasName("PK__ActivePa__54FD6D2F74C9077E");
+
+            entity.Property(e => e.ActiveParkingId).HasColumnName("ActiveParkingID");
+            entity.Property(e => e.EndTime).HasColumnType("datetime");
+            entity.Property(e => e.StartTime).HasColumnType("datetime");
+            entity.Property(e => e.Status).HasMaxLength(20);
+
+            entity.HasOne(d => d.Car).WithMany(p => p.ActiveParkings)
+                .HasForeignKey(d => d.CarId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ActivePar__CarId__5AEE82B9");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ActiveParkings)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ActivePar__Statu__59063A47");
+
+            entity.HasOne(d => d.Zone).WithMany(p => p.ActiveParkings)
+                .HasForeignKey(d => d.ZoneId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ActivePar__ZoneI__59FA5E80");
+        });
+
         modelBuilder.Entity<Car>(entity =>
         {
-            entity.HasKey(e => e.CarId).HasName("PK__Cars__68A0342EA5B51335");
+            entity.HasKey(e => e.CarId).HasName("PK__Cars__68A0342E7530C856");
 
-            entity.HasIndex(e => e.PlateNumber, "UQ__Cars__036926245901A45C").IsUnique();
+            entity.HasIndex(e => e.PlateNumber, "UQ__Cars__03692624DEB746E2").IsUnique();
 
             entity.Property(e => e.Model)
                 .HasMaxLength(50)
@@ -52,7 +79,7 @@ public partial class ParkingAppDbContext : DbContext
 
         modelBuilder.Entity<PaymentMethod>(entity =>
         {
-            entity.HasKey(e => e.PaymentId).HasName("PK__PaymentM__9B556A385C65D277");
+            entity.HasKey(e => e.PaymentId).HasName("PK__PaymentM__9B556A388970E273");
 
             entity.Property(e => e.PaymentType)
                 .HasMaxLength(50)
@@ -61,7 +88,7 @@ public partial class ParkingAppDbContext : DbContext
 
         modelBuilder.Entity<Receipt>(entity =>
         {
-            entity.HasKey(e => e.TransactionId).HasName("PK__Receipts__55433A6B9287417C");
+            entity.HasKey(e => e.TransactionId).HasName("PK__Receipts__55433A6BF50BCA7E");
 
             entity.Property(e => e.Amount).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.EndTime).HasColumnType("datetime");
@@ -90,9 +117,9 @@ public partial class ParkingAppDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C5EB35911");
+            entity.HasKey(e => e.UserId).HasName("PK__Users__1788CC4C34E77D4F");
 
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534F81097B8").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ__Users__A9D1053472781444").IsUnique();
 
             entity.Property(e => e.Adress)
                 .HasMaxLength(250)
@@ -100,9 +127,6 @@ public partial class ParkingAppDbContext : DbContext
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .IsUnicode(false);
-            //entity.Property(e => e.EncryptedPassword)
-            //    .HasMaxLength(512)
-            //    .IsUnicode(false);
             entity.Property(e => e.FullName)
                 .HasMaxLength(100)
                 .IsUnicode(false);
@@ -113,7 +137,7 @@ public partial class ParkingAppDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false);
 
-            entity.HasMany(d => d.PaymentMethods).WithMany(p => p.Users)
+            entity.HasMany(d => d.Payments).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(
                     "UserPaymentMethod",
                     r => r.HasOne<PaymentMethod>().WithMany()
@@ -126,14 +150,14 @@ public partial class ParkingAppDbContext : DbContext
                         .HasConstraintName("FK__UserPayme__UserI__3C69FB99"),
                     j =>
                     {
-                        j.HasKey("UserId", "PaymentId").HasName("PK__UserPaym__8E3D9AEF53BDFA12");
+                        j.HasKey("UserId", "PaymentId").HasName("PK__UserPaym__8E3D9AEF1A4C4EA3");
                         j.ToTable("UserPaymentMethods");
                     });
         });
 
         modelBuilder.Entity<Zone>(entity =>
         {
-            entity.HasKey(e => e.ZoneId).HasName("PK__Zones__601667B5E236CD87");
+            entity.HasKey(e => e.ZoneId).HasName("PK__Zones__601667B5ABA584E6");
 
             entity.Property(e => e.Adress)
                 .HasMaxLength(250)
