@@ -17,11 +17,11 @@ public partial class User
 
     public string? Password { get; set; }
 
-    public string? EncryptedPassword { get; set; }
+    //public string? EncryptedPassword { get; set; }
 
     public virtual ICollection<Car> Cars { get; set; } = new List<Car>();
 
     public virtual ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
 
-    public virtual ICollection<PaymentMethod> Payments { get; set; } = new List<PaymentMethod>();
+    public virtual ICollection<PaymentMethod> PaymentMethods { get; set; } = new List<PaymentMethod>();
 }
