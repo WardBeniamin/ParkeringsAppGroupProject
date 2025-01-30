@@ -44,6 +44,58 @@ namespace ParkeringsApp
             }
         }
 
+        static void Login()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Logga in ===");
+            Console.WriteLine("Ange ditt användarnamn:");
+            string username = Console.ReadLine();
+
+            Console.WriteLine("Ange ditt lösenord:");
+            string password = Console.ReadLine();
+
+            if (users.ContainsKey(username) && users[username] == password)
+            {
+                Console.WriteLine("Inloggning lyckades!");
+                ShowMainMenu(); 
+            }
+            else
+            {
+                Console.WriteLine("Fel användarnamn eller lösenord. Försök igen.");
+                Console.WriteLine("Tryck på en knapp för att återgå till startmenyn...");
+                Console.ReadKey();
+            }
+        }
+
+        
+        static void CreateAccount()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Skapa konto ===");
+            Console.WriteLine("Ange användarnamn för ditt nya konto:");
+            string username = Console.ReadLine();
+
+           
+            if (users.ContainsKey(username))
+            {
+                Console.WriteLine("Användarnamnet är redan upptaget. Välj ett annat.");
+                Console.WriteLine("Tryck på en knapp för att återgå till startmenyn...");
+                Console.ReadKey();
+            }
+            else
+            {
+                Console.WriteLine("Ange lösenord för ditt nya konto:");
+                string password = Console.ReadLine();
+
+               
+                users[username] = password;
+
+                Console.WriteLine("Konto skapades framgångsrikt!");
+                Console.WriteLine("Tryck på en knapp för att återgå till startmenyn...");
+                Console.ReadKey();
+            }
+        }
+
         static void ShowMainMenu()
         {
             bool isRunning = true;
@@ -257,9 +309,133 @@ namespace ParkeringsApp
                 else
                 {
                     Console.WriteLine("Invalid choice. Returning to main menu...");
-                    ShowMainMenu(); 
+                    ShowMainMenu();
                 }
             }
+        }
+    }
+
+    public class User
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string Address { get; set; }
+        public string PhoneNumber { get; set; }
+    }
+
+    internal class LogIn
+    {
+        static void Main(string[] args)
+        {
+            bool appRunning = true;
+
+            while (appRunning)
+            {
+                Console.Clear();
+                Console.WriteLine("=== Welcome to the Parking App ===");
+                Console.WriteLine("1. Log in");
+                Console.WriteLine("2. Create an account");
+                Console.WriteLine("3. Exit");
+                Console.Write("Choose an option (1-3): ");
+
+                string startChoice = Console.ReadLine()!;
+
+                switch (startChoice)
+                {
+                    case "1":
+                        LogInMethod();
+                        break;
+                    case "2":
+                        CreateNewUser();
+                        break;
+                    case "3":
+                        Console.WriteLine("Exiting the app. Goodbye!");
+                        appRunning = false;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid option. Please try again.");
+                        break;
+                }
+            }
+        }
+
+        static void LogInMethod()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Log in ===");
+            Console.Write("Enter email: ");
+            var email = Console.ReadLine();
+
+            Console.Write("Enter password: ");
+            var password = Console.ReadLine();
+
+            using (var context = new ParkingAppDbContext())
+            {
+                var user = context.Users.SingleOrDefault(u => u.Email == email && u.Password == password);
+
+                if (user != null)
+                {
+                    Console.WriteLine($"Welcome back, {user.FullName}!");
+                    ShowMainMenu();
+                }
+                else
+                {
+                    Console.WriteLine("Incorrect email or password. Please try again.");
+                }
+            }
+        }
+
+        static void CreateNewUser()
+        {
+            Console.Clear();
+            Console.WriteLine("=== Create a new account ===");
+
+            Console.Write("Enter full name: ");
+            var fullName = Console.ReadLine();
+
+            Console.Write("Enter email: ");
+            var email = Console.ReadLine();
+
+            Console.Write("Enter password: ");
+            var password = Console.ReadLine();
+
+            Console.Write("Enter address: ");
+            var address = Console.ReadLine();
+
+            Console.Write("Enter phone number: ");
+            var phoneNumber = Console.ReadLine();
+
+            using (var context = new ParkingAppDbContext())
+            {
+                var existingUser = context.Users.SingleOrDefault(u => u.Email == email);
+
+                if (existingUser != null)
+                {
+                    Console.WriteLine("An account with this email already exists. Please choose another email.");
+                    return;
+                }
+
+                var newUser = new User
+                {
+                    FullName = fullName,
+                    Email = email,
+                    Password = password,
+                    Address = address,
+                    PhoneNumber = phoneNumber
+                };
+
+                context.Users.Add(newUser);
+                context.SaveChanges();
+
+                Console.WriteLine("Account created successfully! Please log in.");
+            }
+        }
+
+        static void ShowMainMenu()
+        {
+            Console.WriteLine("Showing main menu...");
         }
     }
 }
