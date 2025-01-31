@@ -22,6 +22,8 @@ namespace ParkeringsApp.Classes
 
             SaveUserToDatabase(fullName, email, address, phoneNumber, password);
             Console.WriteLine("User registered successfully!");
+            Console.WriteLine("\nPress any key to return to main menu");
+            Console.ReadKey();
         }
 
         public static bool IsEmailTaken(string email)
