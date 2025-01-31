@@ -96,7 +96,13 @@ namespace ParkeringsApp.Classes
                         break;
 
                     case "Edit Profile":
-                        UserManager.EditProfileOrDelete(loggedInUser);
+                        bool userStillLoggedIn = UserManager.EditProfileOrDelete(loggedInUser);
+
+                        if (!userStillLoggedIn)
+                        {
+                            // Exit Main Menu to return to Login Menu
+                            return;
+                        }
                         break;
 
                     case "Log out":

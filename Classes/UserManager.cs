@@ -52,7 +52,7 @@ namespace ParkeringsApp.Classes
             }
         }
 
-        public static void EditProfileOrDelete(User loggedInUser)
+        public static bool EditProfileOrDelete(User loggedInUser)
         {
             Console.WriteLine("\nWhat would you like to do?");
             Console.WriteLine("1. Edit Profile");
@@ -64,14 +64,17 @@ namespace ParkeringsApp.Classes
             if (userEditProfileChoice == "1")
             {
                 EditProfile(loggedInUser);
+                return true;
             }
             else if (userEditProfileChoice == "2")
             {
                 DeleteUser(loggedInUser.UserId);
+
                 if (!UserExists(loggedInUser.UserId)) // After deletion, verify if user is deleted
                 {
-                    AnsiConsole.Markup("[red]You have been deleted. Exiting the menu...[/]");
-                    return; // Exit or handle as needed
+                    AnsiConsole.Markup("[red]\nUser deleted successfully. Press any key to return to the login menu...");
+                    Console.ReadKey();
+                    return false; // Signal logout
                 }
             }
             else
@@ -79,6 +82,8 @@ namespace ParkeringsApp.Classes
                 AnsiConsole.Markup("[red]\nInvalid choice. Press any key to return to the main menu...[/]");
                 Console.ReadKey();
             }
+
+            return true; // Default: user remains logged in
         }
         public static bool UserExists(int userId)
         {
@@ -167,8 +172,8 @@ namespace ParkeringsApp.Classes
             using (var ourDatabase = new ParkingAppDbContext())
             {
                 var userToDelete = ourDatabase.Users
-                    .Include(u => u.Cars) // Include user's cars
-                    .Include(u => u.Payments) // Include payment methods (many-to-many)
+                    .Include(u => u.Cars)
+                    .Include(u => u.Payments)
                     .SingleOrDefault(u => u.UserId == loggedInUser);
 
                 if (userToDelete == null)
@@ -178,7 +183,7 @@ namespace ParkeringsApp.Classes
                     return;
                 }
 
-                while (true) // Loop until user provides a valid answer
+                while (true)
                 {
                     Console.WriteLine($"\nAre you sure you want to delete your account, {userToDelete.FullName}? This action cannot be undone.");
                     Console.WriteLine("Type 'YES' to confirm, or 'NO' to go back to the main menu.");
@@ -187,33 +192,37 @@ namespace ParkeringsApp.Classes
 
                     if (confirmation == "YES")
                     {
-                        // Step 1: Delete Receipts related to the user's cars
-                        var userCarIds = userToDelete.Cars.Select(c => c.CarId).ToList();
-                        var userReceipts = ourDatabase.Receipts.Where(r => userCarIds.Contains(r.CarId));
-                        ourDatabase.Receipts.RemoveRange(userReceipts);
-
-                        // Step 2: Delete Cars owned by the user
-                        ourDatabase.Cars.RemoveRange(userToDelete.Cars);
-
-                        // Step 3: Remove Many-to-Many Payment Method Relations
-                        userToDelete.Payments.Clear();
-
-                        // Step 4: Delete the user
-                        ourDatabase.Users.Remove(userToDelete);
-
-                        // Save all changes to the database
+                        using var transaction = ourDatabase.Database.BeginTransaction(); 
                         try
                         {
+                            // Step 1: Delete Receipts related to the user's cars
+                            var userCarIds = userToDelete.Cars.Select(c => c.CarId).ToList();
+                            var userReceipts = ourDatabase.Receipts.Where(r => userCarIds.Contains(r.CarId));
+                            ourDatabase.Receipts.RemoveRange(userReceipts);
+
+                            // Step 2: Delete Cars owned by the user
+                            ourDatabase.Cars.RemoveRange(userToDelete.Cars);
+
+                            // Step 3: Remove Many-to-Many Payment Method Relations
+                            userToDelete.Payments.Clear();
+
+                            // Step 4: Delete the user
+                            ourDatabase.Users.Remove(userToDelete);
+
+                            // Save all changes
                             ourDatabase.SaveChanges();
+                            transaction.Commit(); // Commit transaction
+
+                            return;
                         }
                         catch (Exception ex)
                         {
+                            transaction.Rollback(); // Rollback on failure
                             AnsiConsole.Markup($"[red]\nError deleting user: {ex.Message}[/]");
+                            Console.WriteLine("\nPress any key to return to the main menu...");
+                            Console.ReadKey();
+                            return;
                         }
-
-                        Console.WriteLine("\nUser deleted successfully. Press any key to return to the login menu...");
-                        Console.ReadKey();
-                        return;
                     }
                     else if (confirmation == "NO")
                     {
