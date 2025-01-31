@@ -20,15 +20,33 @@ namespace ParkeringsApp.Classes
             }
 
             // Ask the user to select a parking session to manage
-            Console.Write("\nSelect a parking session to manage (enter ticket number): ");
-            int sessionChoice = int.Parse(Console.ReadLine()!);
-
-            // Validate the session choice
-            if (sessionChoice < 1 || sessionChoice > activeParkings.Count)
+            int sessionChoice;
+            while (true)
             {
-                AnsiConsole.Markup("[red]Invalid choice.[/]");
-                return;
+                Console.Write("\nSelect a parking session to manage (enter ticket number): ");
+                string? input = Console.ReadLine();
+
+                if (string.IsNullOrWhiteSpace(input))
+                {
+                    AnsiConsole.Markup("[red]Input cannot be empty. Please enter a valid ticket number.[/]\n");
+                    continue;
+                }
+
+                if (!int.TryParse(input, out sessionChoice))
+                {
+                    AnsiConsole.Markup("[red]Invalid input. Please enter a number.[/]\n");
+                    continue;
+                }
+
+                if (sessionChoice < 1 || sessionChoice > activeParkings.Count)
+                {
+                    AnsiConsole.Markup("[red]Invalid choice. Please enter a valid ticket number.[/]\n");
+                    continue;
+                }
+
+                break;
             }
+
 
             var selectedSession = activeParkings[sessionChoice - 1];
 
