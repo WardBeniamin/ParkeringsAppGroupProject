@@ -12,4 +12,5 @@ public partial class PaymentMethod
     public virtual ICollection<Receipt> Receipts { get; set; } = new List<Receipt>();
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
+
 }

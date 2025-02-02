@@ -1,4 +1,5 @@
-﻿using ParkeringsApp.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using ParkeringsApp.Models;
 using Spectre.Console;
 
 namespace ParkeringsApp.Classes
@@ -16,6 +17,9 @@ namespace ParkeringsApp.Classes
             // If no active parking sessions are found, exit early
             if (activeParkings.Count == 0)
             {
+                Console.Write("\nYou have no active parking");
+                Console.WriteLine("Press any key to return to main menu");
+                Console.ReadKey();
                 return;
             }
 
@@ -46,7 +50,6 @@ namespace ParkeringsApp.Classes
 
                 break;
             }
-
 
             var selectedSession = activeParkings[sessionChoice - 1];
 
@@ -130,7 +133,8 @@ namespace ParkeringsApp.Classes
         }
         public static void StopParkingSession(ActiveParking selectedSession, ParkingAppDbContext ourDatabase)
         {
-            // Stop the parking session by updating its status to "Completed"
+            
+            int paymentId = GetUserSelectedPaymentMethod(selectedSession.UserId);
             selectedSession.Status = "Completed";
             selectedSession.EndTime = DateTime.Now; // Set the end time to the current time
 
@@ -141,9 +145,12 @@ namespace ParkeringsApp.Classes
                 ZoneId = selectedSession.ZoneId,
                 StartTime = selectedSession.StartTime,
                 EndTime = selectedSession.EndTime.Value, // EndTime is guaranteed to have a value here
-                Amount = CalculateAmount(selectedSession, ourDatabase) // Calculate fee dynamically
+                Amount = CalculateAmount(selectedSession, ourDatabase), // Calculate fee dynamically
+                PaymentId = paymentId
             };
 
+            ourDatabase.Receipts.Add(receipt);
+            ourDatabase.ActiveParkings.Remove(selectedSession);
             ourDatabase.SaveChanges();
             Console.WriteLine("Parking session stopped successfully.");
             Console.WriteLine("\nPress any key to return to main menu");
@@ -173,5 +180,54 @@ namespace ParkeringsApp.Classes
             Console.WriteLine("\nPress any key to return to main menu");
             Console.ReadKey();
         }
+
+        public static int GetUserSelectedPaymentMethod(int userId)
+        {
+            using (var ourDatabase = new ParkingAppDbContext())
+            {
+                var user = ourDatabase.Users.Include(u => u.Payments)
+                                            .FirstOrDefault(u => u.UserId == userId);
+
+                if (user == null)
+                {
+                    Console.WriteLine("User not found.");
+                    return -1; // Return -1 to indicate failure
+                }
+
+                if (user.Payments.Count == 0)
+                {
+                    Console.WriteLine("No available payment methods found.");
+                    return -1; // Return -1 if the user has no payment methods
+                }
+
+                Console.WriteLine($"Payment methods for {user.FullName}:");
+
+                // Dictionary to map user input to payment IDs
+                Dictionary<int, int> paymentOptions = new Dictionary<int, int>();
+                int optionNumber = 1;
+
+                foreach (var method in user.Payments)
+                {
+                    Console.WriteLine($"{optionNumber}. {method.PaymentType}");
+                    paymentOptions[optionNumber] = method.PaymentId;
+                    optionNumber++;
+                }
+
+                // Ask the user to choose a valid payment method
+                int selectedOption;
+                while (true)
+                {
+                    Console.Write("\nEnter the number of the payment method you want to use: ");
+                    string input = Console.ReadLine()!;
+
+                    if (int.TryParse(input, out selectedOption) && paymentOptions.ContainsKey(selectedOption))
+                    {
+                        return paymentOptions[selectedOption]; // Return the selected payment ID
+                    }
+                    AnsiConsole.Markup("[red]Invalid selection. Please choose a valid option.[/]");
+                }
+            }
+        }
+
     }
 }

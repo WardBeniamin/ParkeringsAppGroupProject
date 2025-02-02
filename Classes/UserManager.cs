@@ -72,7 +72,7 @@ namespace ParkeringsApp.Classes
 
                 if (!UserExists(loggedInUser.UserId)) // After deletion, verify if user is deleted
                 {
-                    AnsiConsole.Markup("[red]\nUser deleted successfully. Press any key to return to the login menu...");
+                    AnsiConsole.Markup("[red]\nUser deleted successfully. Press any key to return to the login menu...[/]");
                     Console.ReadKey();
                     return false; // Signal logout
                 }
