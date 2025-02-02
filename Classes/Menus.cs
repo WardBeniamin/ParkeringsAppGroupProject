@@ -62,7 +62,7 @@ namespace ParkeringsApp.Classes
                 // Reusing ShowHeaderAndMenu for Main Menu
                 string menuSelection = ShowHeaderAndMenu(
                     $"=== Main Menu === (Logged in as: {loggedInUser.FullName})",
-                    new[] { "Register car", "Start a parking", "Ongoing parking", "Receipts", "List all zones", "Edit Profile", "Log out" }
+                    new[] { "Register car", "Add Payment Method", "Start a parking", "Ongoing parking", "Receipts", "List all zones", "Edit Profile", "Log out" }
                 );
 
                 switch (menuSelection)
@@ -70,6 +70,11 @@ namespace ParkeringsApp.Classes
                     case "Register car":
                         CarManager.AddNewCar(loggedInUser);
                         break;
+
+                    case "Add Payment Method":
+                        PaymentManager.RegisterPaymentMethod(loggedInUser.UserId);
+                        break;
+
 
                     case "Start a parking":
                         using (var ourDatabase = new ParkingAppDbContext())
